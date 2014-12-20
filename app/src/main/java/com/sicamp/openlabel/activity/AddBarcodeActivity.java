@@ -4,43 +4,35 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.StrictMode;
 import android.provider.MediaStore;
-import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.RequestParams;
-import com.loopj.android.http.ResponseHandlerInterface;
 import com.sicamp.openlabel.R;
+import com.sicamp.openlabel.controller.AddBarcodeController;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.concurrent.ExecutionException;
+
+import static android.provider.MediaStore.Images.Media.CONTENT_TYPE;
 
 public class AddBarcodeActivity extends Activity implements View.OnClickListener {
 
@@ -53,16 +45,46 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
 
     private Button btnAccept;
 
-    File file;
+//    File file;
+
+    String lineEnd = "\r\n";
+    String twoHyphens = "--";
+    String boundary = "*****";
+
+    private FileInputStream mFileInputStream = null;
+    private URL connectUrl = null;
+    private Uri selPhotoUri;
+
+    private EditText editTitle, editTag, editReview;
+    Intent intent;
+    private String barcode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_barcode);
 
+        if (android.os.Build.VERSION.SDK_INT > 9) {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+        }
+
+        init();
         initButton();
         initImageView();
+        initEditView();
+    }
 
+    void init() {
+        intent = getIntent();
+        barcode = intent.getStringExtra("barcode");
+    }
+
+
+    void initEditView() {
+        editReview = (EditText) findViewById(R.id.edit_review);
+        editTag = (EditText) findViewById(R.id.edit_tag);
+        editTitle = (EditText) findViewById(R.id.edit_title);
     }
 
     void initButton() {
@@ -89,7 +111,7 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
 
     void takePhotoFromAlbum() {
         Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType(MediaStore.Images.Media.CONTENT_TYPE);
+        intent.setType(CONTENT_TYPE);
         startActivityForResult(intent, PICK_FROM_ALBUM);
 
 
@@ -117,40 +139,46 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
+
+
         if (resultCode != RESULT_OK) {
             return;
         }
 
         switch (requestCode) {
             case CROP_FROM_CAMERA:
-                final Bundle extras = data.getExtras();
+
+                final Bundle extras = intent.getExtras();
 
                 if (extras != null) {
                     Bitmap photo = extras.getParcelable("data");
                     photoImageView.setImageBitmap(photo);
                 }
-
-                file = new File(imageCaptureUri.getPath());
-                Log.d("file", file.toString());
                 break;
 
             case PICK_FROM_ALBUM:
-                imageCaptureUri = data.getData();
-            case PICK_FROM_CAMERA:
-                Intent intent = new Intent("com.android.camera.action.CROP");
-                intent.setDataAndType(imageCaptureUri, "image/*");
+                selPhotoUri = intent.getData();
 
-                intent.putExtra("outputX", 300);
-                intent.putExtra("outputY", 300);
-                intent.putExtra("aspectX", 1);
-                intent.putExtra("aspectY", 1);
-                intent.putExtra("sclae", true);
-                intent.putExtra("return-data", true);
-                startActivityForResult(intent, CROP_FROM_CAMERA);
+            case PICK_FROM_CAMERA:
+                Intent intent2 = new Intent("com.android.camera.action.CROP");
+                intent2.setDataAndType(imageCaptureUri, "image/*");
+
+                intent2.putExtra("outputX", 300);
+                intent2.putExtra("outputY", 300);
+                intent2.putExtra("aspectX", 1);
+                intent2.putExtra("aspectY", 1);
+                intent2.putExtra("sclae", true);
+                intent2.putExtra("return-data", true);
+
+                selPhotoUri = intent2.getData();
+
+                startActivityForResult(intent2, CROP_FROM_CAMERA);
                 break;
 
         }
+
     }
 
     @Override
@@ -158,87 +186,41 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
         switch (view.getId()) {
             case R.id.btn_accept:
 
-                final AsyncHttpClient client = new AsyncHttpClient();
-                RequestParams param = new RequestParams();
+                String urlString = "http://applepi.kr/sicamp/file_upload2.php";
+
+                Cursor c = getContentResolver().query(Uri.parse(selPhotoUri.toString()), null, null, null, null);
+
+                c.moveToNext();
+                String absolutePath = c.getString(c.getColumnIndex(MediaStore.MediaColumns.DATA));
+
+                String s = DoFileUpload(urlString, absolutePath);
+                String imgResult = null;
+                String imgName = null;
+                Log.d("KBS", s);
                 try {
-                    param.put("fileToUpload", file);
-                } catch (FileNotFoundException e) {
+                    JSONObject jsonObject = new JSONObject(s);
+                    imgResult = jsonObject.getString("result");
+                    imgName = jsonObject.getString("imgName");
+                } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                client.post("http://applepi.kr/sicamp/file_upload.php", param, new ResponseHandlerInterface() {
-
-                    @Override
-                    public void sendResponseMessage(HttpResponse response) throws IOException {
-                        Log.d("KKKK", "RESPONSE : " + EntityUtils.toString(response.getEntity()));
+                //파일 업로드 시작!
+                if (imgResult.equals("200")) {
+                    //성공
+                    AddBarcodeController addBarcodeController = new AddBarcodeController();
+                    try {
+                        String result = addBarcodeController.execute(barcode, editTitle.getText().toString(), imgName).get();
+                        JSONObject jsonObject = new JSONObject(result);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
-
-                    @Override
-                    public void sendStartMessage() {
-
-                    }
-
-                    @Override
-                    public void sendFinishMessage() {
-
-                    }
-
-                    @Override
-                    public void sendProgressMessage(int bytesWritten, int bytesTotal) {
-
-                    }
-
-                    @Override
-                    public void sendCancelMessage() {
-
-                    }
-
-                    @Override
-                    public void sendSuccessMessage(int statusCode, Header[] headers, byte[] responseBody) {
-                        Log.d("KKKK", "SUCCESS : " + statusCode + " / " + responseBody);
-                    }
-
-                    @Override
-                    public void sendFailureMessage(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                        Log.d("KKKK", "FAILED : " + statusCode + " / " + responseBody);
-                    }
-
-                    @Override
-                    public void sendRetryMessage(int retryNo) {
-
-                    }
-
-                    @Override
-                    public URI getRequestURI() {
-                        return null;
-                    }
-
-                    @Override
-                    public Header[] getRequestHeaders() {
-                        return new Header[0];
-                    }
-
-                    @Override
-                    public void setRequestURI(URI requestURI) {
-
-                    }
-
-                    @Override
-                    public void setRequestHeaders(Header[] requestHeaders) {
-
-                    }
-
-                    @Override
-                    public void setUseSynchronousMode(boolean useSynchronousMode) {
-
-                    }
-
-                    @Override
-                    public boolean getUseSynchronousMode() {
-                        return false;
-                    }
-
-                });
-
+                } else {
+                    //에러
+                }
                 break;
             case R.id.image_add:
                 AlertDialog.Builder builder = new AlertDialog.Builder(AddBarcodeActivity.this);
@@ -255,57 +237,102 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
                     }
                 });
                 builder.create().show();
-
+//                Intent intent = new Intent();
+//                intent.setAction(Intent.ACTION_GET_CONTENT);
+//                intent.setType("image/*");
+//                startActivityForResult(intent, 0);
                 break;
             default:
 
         }
     }
 
-    class FuckingAsync extends AsyncTask<String, Integer, HttpResponse> {
+    public String DoFileUpload(String apiUrl, String absolutePath) {
+        return HttpFileUpload(apiUrl, "", absolutePath);
 
-        private ArrayList<NameValuePair> list;
-        HttpResponse res;
-
-        FuckingAsync() {
-            list = new ArrayList<>();
-        }
-
-        @Override
-        protected HttpResponse doInBackground(String... strings) {
-            try {
-                HttpPost httpPost = new HttpPost("http://applepi.kr/sicamp/file_upload.php");
-                String s = Base64.encodeToString(convertTextFileToByteArray(file), Base64.DEFAULT);
-
-                MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-
-                builder.setBoundary("KKK");
-                builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-                builder.setCharset(Charset.forName("UTF-8"));
-
-                builder.addBinaryBody("fileToUpload", file);
-                HttpEntity entity = builder.build();
-
-                httpPost.setEntity(entity);
-                HttpClient client = new DefaultHttpClient();
-                res = client.execute(httpPost);
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            } catch (ClientProtocolException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(HttpResponse httpResponse) {
-            try {
-                Log.d("kkkk", EntityUtils.toString(res.getEntity()));
-            } catch (IOException e) {
-
-            }
-        }
     }
+
+    public String HttpFileUpload(String urlString, String params, String fileName) {
+        String s = "500";
+        try {
+
+            mFileInputStream = new FileInputStream(fileName);
+            connectUrl = new URL(urlString);
+            Log.d("Test", "mFileInputStream  is " + mFileInputStream);
+
+
+            // open connection
+            HttpURLConnection conn = (HttpURLConnection) connectUrl.openConnection();
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+            conn.setUseCaches(false);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Connection", "Keep-Alive");
+            conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+
+
+            DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
+
+            for (int i = 0; i < 1; i++) {
+
+                dos.writeBytes(twoHyphens + boundary + lineEnd);
+                dos.writeBytes("Content-Disposition: form-data; name=\"" + "id" + "\"" + lineEnd);
+                dos.writeBytes(lineEnd);
+                dos.writeBytes("abcde");
+                dos.writeBytes(lineEnd);
+
+            }//for
+
+
+            dos.writeBytes(twoHyphens + boundary + lineEnd);
+            dos.writeBytes("Content-Disposition: form-data; name=\"uploadedfile\";filename=\"" + fileName + "\"" + lineEnd);
+            dos.writeBytes(lineEnd);
+
+            int bytesAvailable = mFileInputStream.available();
+            int maxBufferSize = 1024;
+            int bufferSize = Math.min(bytesAvailable, maxBufferSize);
+
+            byte[] buffer = new byte[bufferSize];
+            int bytesRead = mFileInputStream.read(buffer, 0, bufferSize);
+
+            Log.d("Test", "image byte is " + bytesRead);
+
+            // read image
+            while (bytesRead > 0) {
+                dos.write(buffer, 0, bufferSize);
+                bytesAvailable = mFileInputStream.available();
+                bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                bytesRead = mFileInputStream.read(buffer, 0, bufferSize);
+            }
+
+            dos.writeBytes(lineEnd);
+            dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+
+            // close streams
+            Log.e("Test", "File is written");
+            mFileInputStream.close();
+            dos.flush(); // finish upload...
+
+            // get response
+            int ch;
+            InputStream is = conn.getInputStream();
+            StringBuffer b = new StringBuffer();
+            while ((ch = is.read()) != -1) {
+                b.append((char) ch);
+            }
+            s = b.toString();
+            Log.e("Test", "result = " + s);
+
+            dos.close();
+
+        } catch (Exception e) {
+            System.out.println(e);
+            System.out.println(e.getMessage());
+            Log.e("Test", "exception " + e.getMessage());
+            // TODO: handle exception
+        }
+
+        return s;
+    }
+
 }

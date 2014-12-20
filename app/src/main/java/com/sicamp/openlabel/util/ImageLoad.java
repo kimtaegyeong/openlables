@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import android.widget.ImageView;
 
 import java.io.BufferedInputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -71,7 +72,7 @@ public class ImageLoad extends AsyncTask<String, Integer, Bitmap> {
 
             URL url = new URL(image_url);
 
-            URLConnection conn = url.openConnection();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
             conn.connect();
 

@@ -3,17 +3,21 @@ package com.sicamp.openlabel.activity;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.sicamp.openlabel.HotDto;
 import com.sicamp.openlabel.R;
 import com.sicamp.openlabel.adapter.HotListAdapter;
+import com.sicamp.openlabel.controller.BarcodeCheckController;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 import static android.view.View.OnClickListener;
 
@@ -27,6 +31,8 @@ public class MainActivity extends Activity implements OnClickListener {
     private ArrayList<HotDto> hotDtos;
     private HotDto hotDto = null;
     private HotListAdapter hotAdapter;
+
+    private String barcode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +103,23 @@ public class MainActivity extends Activity implements OnClickListener {
                 String contents = data.getStringExtra("SCAN_RESULT");
                 String format = data.getStringExtra("SCAN_RESULT_FORMAT");
 
+                barcode = contents;
+                BarcodeCheckController barcodeCheckController = new BarcodeCheckController();
+                try {
+                    String s = barcodeCheckController.execute(barcode).get();
+                    Log.d("kkk = ", s);
+                    if (s.equals("500")) {
+                        Intent intent = new Intent(MainActivity.this, AddBarcodeActivity.class);
+                        intent.putExtra("barcode", barcode);
+                        startActivity(intent);
+                    } else {
+                        //바코드가 잇을대
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
 
             } else if (resultCode == RESULT_CANCELED) {
 
