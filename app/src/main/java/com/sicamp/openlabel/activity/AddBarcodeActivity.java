@@ -17,8 +17,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
+import com.loopj.android.http.ResponseHandlerInterface;
 import com.sicamp.openlabel.R;
 
 import org.apache.http.Header;
@@ -38,6 +38,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 
@@ -164,15 +165,75 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
-                client.post("http://applepi.kr/sicamp/file_upload.php", param, new AsyncHttpResponseHandler() {
+                client.post("http://applepi.kr/sicamp/file_upload.php", param, new ResponseHandlerInterface() {
                     @Override
-                    public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                        Log.d("KKKK", "SUCCESS : " +statusCode + " / " + responseBody.toString());
+                    public void sendResponseMessage(HttpResponse response) throws IOException {
+                        Log.d("KKKK", "RESPONSE : " + EntityUtils.toString(response.getEntity()));
                     }
 
                     @Override
-                    public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                    public void sendStartMessage() {
 
+                    }
+
+                    @Override
+                    public void sendFinishMessage() {
+
+                    }
+
+                    @Override
+                    public void sendProgressMessage(int bytesWritten, int bytesTotal) {
+
+                    }
+
+                    @Override
+                    public void sendCancelMessage() {
+
+                    }
+
+                    @Override
+                    public void sendSuccessMessage(int statusCode, Header[] headers, byte[] responseBody) {
+                        Log.d("KKKK", "SUCCESS : " +statusCode + " / " + responseBody);
+                    }
+
+                    @Override
+                    public void sendFailureMessage(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+                        Log.d("KKKK", "FAILED : " +statusCode + " / " + responseBody);
+                    }
+
+                    @Override
+                    public void sendRetryMessage(int retryNo) {
+
+                    }
+
+                    @Override
+                    public URI getRequestURI() {
+                        return null;
+                    }
+
+                    @Override
+                    public Header[] getRequestHeaders() {
+                        return new Header[0];
+                    }
+
+                    @Override
+                    public void setRequestURI(URI requestURI) {
+
+                    }
+
+                    @Override
+                    public void setRequestHeaders(Header[] requestHeaders) {
+
+                    }
+
+                    @Override
+                    public void setUseSynchronousMode(boolean useSynchronousMode) {
+
+                    }
+
+                    @Override
+                    public boolean getUseSynchronousMode() {
+                        return false;
                     }
                 });
 
