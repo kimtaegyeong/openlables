@@ -158,7 +158,7 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
         switch (view.getId()) {
             case R.id.btn_accept:
 
-                AsyncHttpClient client = new AsyncHttpClient();
+                final AsyncHttpClient client = new AsyncHttpClient();
                 RequestParams param = new RequestParams();
                 try {
                     param.put("fileToUpload", file);
@@ -166,6 +166,7 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
                     e.printStackTrace();
                 }
                 client.post("http://applepi.kr/sicamp/file_upload.php", param, new ResponseHandlerInterface() {
+
                     @Override
                     public void sendResponseMessage(HttpResponse response) throws IOException {
                         Log.d("KKKK", "RESPONSE : " + EntityUtils.toString(response.getEntity()));
@@ -193,12 +194,12 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
 
                     @Override
                     public void sendSuccessMessage(int statusCode, Header[] headers, byte[] responseBody) {
-                        Log.d("KKKK", "SUCCESS : " +statusCode + " / " + responseBody);
+                        Log.d("KKKK", "SUCCESS : " + statusCode + " / " + responseBody);
                     }
 
                     @Override
                     public void sendFailureMessage(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                        Log.d("KKKK", "FAILED : " +statusCode + " / " + responseBody);
+                        Log.d("KKKK", "FAILED : " + statusCode + " / " + responseBody);
                     }
 
                     @Override
@@ -235,6 +236,7 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
                     public boolean getUseSynchronousMode() {
                         return false;
                     }
+
                 });
 
                 break;
@@ -268,6 +270,7 @@ public class AddBarcodeActivity extends Activity implements View.OnClickListener
         FuckingAsync() {
             list = new ArrayList<>();
         }
+
         @Override
         protected HttpResponse doInBackground(String... strings) {
             try {
