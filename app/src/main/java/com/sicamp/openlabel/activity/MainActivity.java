@@ -3,7 +3,6 @@ package com.sicamp.openlabel.activity;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -20,6 +19,7 @@ import static android.view.View.OnClickListener;
 
 
 public class MainActivity extends Activity implements OnClickListener {
+
 
     private Button btnSearch, btnCamera;
     private EditText editSearch;
@@ -81,7 +81,7 @@ public class MainActivity extends Activity implements OnClickListener {
                 startActivityForResult(intent, 0);
                 break;
             case R.id.btn_search:
-
+                startActivity(new Intent(MainActivity.this, AddBarcodeActivity.class));
                 break;
 
             default:
@@ -96,6 +96,7 @@ public class MainActivity extends Activity implements OnClickListener {
             if (resultCode == RESULT_OK) {
                 String contents = data.getStringExtra("SCAN_RESULT");
                 String format = data.getStringExtra("SCAN_RESULT_FORMAT");
+
 
             } else if (resultCode == RESULT_CANCELED) {
 
