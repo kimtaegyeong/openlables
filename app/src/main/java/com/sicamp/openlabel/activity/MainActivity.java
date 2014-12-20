@@ -50,11 +50,11 @@ public class MainActivity extends Activity implements OnClickListener {
         hotAdapter = new HotListAdapter(MainActivity.this, R.layout.item_mainlist, hotDtos);
 
 
-        hotDto = new HotDto("left1", "right1", "imgL1", "imgR1", 80, 20, 60, 40);
+        hotDto = new HotDto("left1", "right1", "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQoMzU7CyBpNPy5dy4jcFIi9pHfDT98Ml_un0wxB0nsTJ1jnVD_cA", "imgR1", 80, 20, 60, 40);
         hotAdapter.add(hotDto);
-        hotDto = new HotDto("left2", "right2", "imgL2", "imgR2", 80, 20, 20, 80);
+        hotDto = new HotDto("left2", "right2", "imgL2", "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQoMzU7CyBpNPy5dy4jcFIi9pHfDT98Ml_un0wxB0nsTJ1jnVD_cA", 80, 20, 20, 80);
         hotAdapter.add(hotDto);
-        hotDto = new HotDto("left3", "right3", "imgL3", "imgR3", 70, 30, 60, 40);
+        hotDto = new HotDto("left3", "right3", "imgL3", "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcQoMzU7CyBpNPy5dy4jcFIi9pHfDT98Ml_un0wxB0nsTJ1jnVD_cA", 70, 30, 60, 40);
         hotAdapter.add(hotDto);
 
         listview = (ListView) findViewById(R.id.list);

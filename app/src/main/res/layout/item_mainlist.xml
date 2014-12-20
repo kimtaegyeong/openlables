@@ -5,6 +5,7 @@
     android:layout_height="match_parent">
 
     <RelativeLayout
+        android:id="@+id/layout_hot_left"
         android:layout_width="0px"
         android:layout_marginLeft="5dp"
         android:layout_marginRight="5dp"
@@ -20,9 +21,8 @@
 
         <ImageView
             android:id="@+id/img_left"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/ic_launcher"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
             android:layout_below="@+id/text_left"
             android:layout_centerHorizontal="true" />
 
@@ -55,9 +55,11 @@
             android:layout_below="@+id/progressBar_left"
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true" />
+
     </RelativeLayout>
 
     <RelativeLayout
+        android:id="@+id/layout_hot_right"
         android:layout_width="0px"
         android:layout_marginLeft="5dp"
         android:layout_marginRight="5dp"
@@ -73,9 +75,8 @@
 
         <ImageView
             android:id="@+id/img_right"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/ic_launcher"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
             android:layout_below="@+id/text_right"
             android:layout_centerHorizontal="true" />
 
